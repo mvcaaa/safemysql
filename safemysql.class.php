@@ -59,15 +59,15 @@
  * 
  */
 
-class SafeMySQL
+class SafeMSyQL
 {
 
-	private $conn;
-	private $stats;
-	private $emode;
-	private $exname;
+	private $_conn;
+	private $_stats;
+	private $_emode;
+	private $_exname;
 
-	private $defaults = array(
+	private $_defaults = array(
 		'host'      => 'localhost',
 		'user'      => 'root',
 		'pass'      => '',
@@ -85,23 +85,19 @@ class SafeMySQL
 
 	function __construct($opt = array())
 	{
-		$opt = array_merge($this->defaults,$opt);
-
-		$this->emode  = $opt['errmode'];
-		$this->exname = $opt['exception'];
-
+		$opt = array_merge($this->_defaults,$opt);
+		$this->_emode  = $opt['errmode'];
+		$this->_exname = $opt['exception'];
 		if ($opt['pconnect'])
 		{
 			$opt['host'] = "p:".$opt['host'];
 		}
-
-		@$this->conn = mysqli_connect($opt['host'], $opt['user'], $opt['pass'], $opt['db'], $opt['port'], $opt['socket']);
-		if ( !$this->conn )
+		$this->_conn = mysqli_connect($opt['host'], $opt['user'], $opt['pass'], $opt['db'], $opt['port'], $opt['socket']);
+		if ( !$this->_conn )
 		{
 			$this->error(mysqli_connect_errno()." ".mysqli_connect_error());
 		}
-
-		mysqli_set_charset($this->conn, $opt['charset']) or $this->error(mysqli_error($this->conn));
+		mysqli_set_charset($this->_conn, $opt['charset']) or $this->error(mysqli_error($this->_conn));
 		unset($opt); // I am paranoid
 	}
 
@@ -139,7 +135,7 @@ class SafeMySQL
 	 */
 	public function affectedRows()
 	{
-		return mysqli_affected_rows ($this->conn);
+		return mysqli_affected_rows ($this->_conn);
 	}
 
 	/**
@@ -149,7 +145,7 @@ class SafeMySQL
 	 */
 	public function insertId()
 	{
-		return mysqli_insert_id($this->conn);
+		return mysqli_insert_id($this->_conn);
 	}
 
 	/**
@@ -419,7 +415,7 @@ class SafeMySQL
 	 */
 	public function lastQuery()
 	{
-		$last = end($this->stats);
+		$last = end($this->_stats);
 		return $last['query'];
 	}
 
@@ -430,7 +426,7 @@ class SafeMySQL
 	 */
 	public function getStats()
 	{
-		return $this->stats;
+		return $this->_stats;
 	}
 
 	/**
@@ -443,21 +439,21 @@ class SafeMySQL
 	private function rawQuery($query)
 	{
 		$start = microtime(TRUE);
-		$res   = mysqli_query($this->conn, $query);
+		$res   = mysqli_query($this->_conn, $query);
 		$timer = microtime(TRUE) - $start;
 
-		$this->stats[] = array(
+		$this->_stats[] = array(
 			'query' => $query,
 			'start' => $start,
 			'timer' => $timer,
 		);
 		if (!$res)
 		{
-			$error = mysqli_error($this->conn);
+			$error = mysqli_error($this->_conn);
 			
-			end($this->stats);
-			$key = key($this->stats);
-			$this->stats[$key]['error'] = $error;
+			end($this->_stats);
+			$key = key($this->_stats);
+			$this->_stats[$key]['error'] = $error;
 			$this->cutStats();
 			
 			$this->error("$error. Full query: [$query]");
@@ -537,7 +533,7 @@ class SafeMySQL
 		{
 			return 'NULL';
 		}
-		return	"'".mysqli_real_escape_string($this->conn,$value)."'";
+		return	"'".mysqli_real_escape_string($this->_conn,$value)."'";
 	}
 
 	private function escapeIdent($value)
@@ -595,7 +591,7 @@ class SafeMySQL
 	{
 		$err  = __CLASS__.": ".$err;
 
-		if ( $this->emode == 'error' )
+		if ( $this->_emode == 'error' )
 		{
 			$err .= ". Error initiated in ".$this->caller().", thrown";
 			trigger_error($err,E_USER_ERROR);
@@ -626,11 +622,11 @@ class SafeMySQL
 	 */
 	private function cutStats()
 	{
-		if ( count($this->stats) > 100 )
+		if ( count($this->_stats) > 100 )
 		{
-			reset($this->stats);
-			$first = key($this->stats);
-			unset($this->stats[$first]);
+			reset($this->_stats);
+			$first = key($this->_stats);
+			unset($this->_stats[$first]);
 		}
 	}
 }
